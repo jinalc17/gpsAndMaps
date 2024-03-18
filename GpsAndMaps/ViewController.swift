@@ -24,7 +24,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate  {
     @IBOutlet weak var bottomBar: UIView!
     
     let locationManager = CLLocationManager()
-    var tripStartDate: Date?
+    var tripStartDate: Date = Date()
     var previousLocation: CLLocation?
     var timeElapsed: Double = 0.0
     var tripDistance: CLLocationDistance = 0
@@ -45,7 +45,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate  {
     
     
     @IBAction func startTrip(_ sender: Any) {
-        tripStartDate = Date()
+        print("Trip started!, Current time is: \(tripStartDate)")
         locationManager.startUpdatingLocation()
         isTripStarted = true
         //set bottombar background
@@ -55,10 +55,10 @@ class ViewController: UIViewController, CLLocationManagerDelegate  {
     
     @IBAction func stopTrip(_ sender: Any) {
         locationManager.stopUpdatingLocation()
-        tripStartDate = nil
         // Reset top bar and bottom bar background
         bottomBar.backgroundColor = UIColor.gray
         topBar.backgroundColor = UIColor.clear
+        print("Trip completed!")
     }
     
     
@@ -68,7 +68,6 @@ class ViewController: UIViewController, CLLocationManagerDelegate  {
         
         guard let newLocation = locations.last else { return }
         let currentSpeed = newLocation.speed
-        print("Current speed: \(currentSpeed)")
         
         // Update current speed label
         currentSpeedLabel.text = "\(Int(currentSpeed * 3.6)) km/h"
@@ -78,7 +77,6 @@ class ViewController: UIViewController, CLLocationManagerDelegate  {
             maxSpeed = currentSpeed
             maxSpeedLabel.text = "\(Int(maxSpeed * 3.6)) km/h"
         }
-        print("Max speed: \(maxSpeed)")
         
         // Calculate trip distance and update distance label
         if let prevLocation = previousLocation {
@@ -87,33 +85,30 @@ class ViewController: UIViewController, CLLocationManagerDelegate  {
             distanceLabel.text = "\(String(format: "%.2f", tripDistance)) km"
         }
         
-        print("Distance: \(tripDistance)")
-        
         previousLocation = newLocation
         
         // Calculate total time elapsed
-        timeElapsed = newLocation.timestamp.timeIntervalSince(tripStartDate ?? Date())
-        
-        print("Time Elapsed: \(timeElapsed)")
+        timeElapsed = newLocation.timestamp.timeIntervalSince(tripStartDate)
         
         // Calculate average speed
         if timeElapsed > 0 {
-            averageSpeed = tripDistance / timeElapsed * 3.6 // Convert from m/s to km/h
+            let totalTime = timeElapsed / 3600.0
+            averageSpeed = tripDistance / totalTime
             averageSpeedLabel.text = String(format: "%.2f km/h", averageSpeed)
+        } else {
+            print("No time has elapsed since the trip started.")
         }
         
-        print("Average Speed: \(averageSpeed)")
         
         // Calculate acceleration using distance travelled over time
         let acceleration = (2 * tripDistance) / Double(timeElapsed)
-
+        
         // Update max acceleration if the current acceleration exceeds it
         if acceleration > maxAcceleration {
             maxAcceleration = acceleration
         }
         // Update the max acceleration label
         maxAccelerationLabel.text = String(format: "%.2f m/s^2", maxAcceleration)
-        print("Max Acceleration: \(averageSpeed)")
         
         // Update top bar color if speed exceeds 115 km/h
         topBar.backgroundColor = currentSpeed > (115.0 / 3.6) ? UIColor.red : UIColor.clear
@@ -124,7 +119,17 @@ class ViewController: UIViewController, CLLocationManagerDelegate  {
         let distanceToSpeedLimit = currentSpeed * timeToReachSpeedLimit + 0.5 * acceleration * timeToReachSpeedLimit * timeToReachSpeedLimit
         // Convert distance to kilometers
         let distanceToSpeedLimitKm = distanceToSpeedLimit / 1000.0
-        print("Distance before the speed limit 115 km/h: \(distanceToSpeedLimitKm) kilometers")
+        
+        if (distanceToSpeedLimitKm >= 0)
+        {
+            //format distance
+            let distance = String(format: "%.2f",distanceToSpeedLimitKm)
+            print("Distance before the speed limit 115 km/h: \(distance) km")
+        }
+        else
+        {
+            print("User is over the speed 115 km/h")
+        }
         
         // Update map view
         mapView.setCenter(newLocation.coordinate, animated: true)
